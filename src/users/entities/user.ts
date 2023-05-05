@@ -1,6 +1,6 @@
 // required imports from typeorm
+import { Profile } from "src/profiles/entities/profile.entity";
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Profile } from "./Profile";
 
 // Entity decorator that defines this class as a database entity
 // name option will name the table that it is assosciated with
@@ -31,6 +31,7 @@ export class User{
 
   @OneToOne(() => Profile)
   @JoinColumn()
-  profile: Profile
+  profile: Profile;
+
 
 }

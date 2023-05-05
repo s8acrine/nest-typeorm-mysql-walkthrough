@@ -172,9 +172,9 @@ We'll start by creating a User entity, a common feature of many applications. Th
 Entities in TypeORM are a class which communicates with your server to create tables
 Setting up your entity properly allows for easy database management
 
-- Create the typeorm folder in your src directory
-- Create the entities folder in your src/typeorm directory
-- Create a file User.ts to define your User entity
+- Create a new folder in the src directory called 'users'
+- Create a new folder in the users directory called 'entities'
+- Create a new file in the entities directory called 'user.entity.ts'
 
 This file will define the User entity, the columns it will have, and the data types it will store.
 For our user, we will want:
@@ -313,7 +313,7 @@ import { Module } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from 'src/typeorm/entities/User';
+import { User } from 'src/users/entities/user';
 
 @Module({
   // add the TypeOrmModule.forFeature with the argument of the entities we will want to use in the module. As this is the users module, that is the entity we want
@@ -353,13 +353,13 @@ In order to properly transmit and retrieve data, we need to define what should b
 
 Create a directory in your users directory called dtos
 
-In that directory create a file named CreateUser.dto.ts
+In that directory create a file named create-user.dto.ts
 In this file we only need to define username and password as strings, as the user id is generated through the use of the PrimaryGeneratedResource decorator and our date will be generated through our method when we build it
 
-CreateUser.dto.ts
+create-user.dto.ts
 
 ```typescript
-export class createUserDto {
+export class CreateUserDto {
   username: string;
   password: string;
 }
@@ -446,7 +446,7 @@ users.controller.ts
 ```typescript
 ...
   @Post()
-  createUser(@Body() createUserDto: createUserDto) {
+  createUser(@Body() createUserDto: CreateUserDto) {
     this.usersService.createUser()
   }
 ...
@@ -544,7 +544,7 @@ Because our repository has already been injected into our UsersService Class, we
 src/users/user.service.ts
 
 ```typescript
-import { User } from 'src/typeorm/entities/User';
+import { User } from 'src/typeorm/entities/user';
 import { CreateUserParams } from 'src/utils/types';
 import { Repository } from 'typeorm';
 
@@ -578,7 +578,7 @@ We use the @Get() decorator to identify what verb we will handle, then set up ou
 
 ```typescript
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { createUserDto } from './dtos/CreateUser.dto';
+import { CreateUserDto } from './dtos/create-user.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -593,7 +593,7 @@ export class UsersController {
   //----------------------------------------
 
   @Post()
-  createUser(@Body() createUserDto: createUserDto) {
+  createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.createUser(createUserDto);
   }
 }
@@ -609,7 +609,7 @@ We will need to format the request body of this request, so we need to create a 
 
 As the only thing we will be updating is the username and password, we can effictively copy the implementation from our createUserDto and createUserParams:
 
-src/users/dtos/UpdateUser.dto.ts
+src/users/dtos/update-user.dto.ts
 
 ```typescript
 export class UpdateUserDto {
@@ -718,16 +718,44 @@ async deleteUserById(
 
 We can now perform some basic functionality with our Users entity, but we will need to add a second entity to our database in order to demonstrate how to work with relationships in Nest.js and TypeORM effectively.
 
+While you can absolutley follow the above process for creating a new entity, the nest.js cli has a command that will create your your modul, entity, service, and controller files for you, and set up basic CRUD endpoints. We will use this command to create our second entity.
+
+It will ask you what transport layer you will use, since we are using REST API, we will select that and hit enter.
+You will next be asked if you would like to generate CRUD endpoints, we will select yes.
+
+```
+nest g resource profiles
+? What transport layer do you use?
+❯ REST API
+  GraphQL (code first)
+  GraphQL (schema first)
+  Microservice (non-HTTP)
+  WebSockets
+
+? Would you like to generate CRUD entry points? Yes
+CREATE src/profiles/profiles.controller.spec.ts (596 bytes)
+CREATE src/profiles/profiles.controller.ts (957 bytes)
+CREATE src/profiles/profiles.module.ts (268 bytes)
+CREATE src/profiles/profiles.service.spec.ts (474 bytes)
+CREATE src/profiles/profiles.service.ts (651 bytes)
+CREATE src/profiles/dto/create-profile.dto.ts (33 bytes)
+CREATE src/profiles/dto/update-profile.dto.ts (181 bytes)
+CREATE src/profiles/entities/profile.entity.ts (24 bytes)
+UPDATE package.json (2076 bytes)
+UPDATE src/app.module.ts (711 bytes)
+✔ Packages installed successfully.
+```
+
+Now we have our basic structure for our second entity, we can begin to modify it to fit our needs
+
 ## A quick note on Relationships
 
 This next section will cover database relationships with Nest.js and TypeORM. As this walkthrough is not designed to be a full tutorial on Nest.js, we will not be covering this in depth.
 It is reccomended that you read the documentation on TypeORM relationships, as well as Nest.js relationships.
 
-## Creating the entity
+## Setting up the entity
 
-In the same way we created the User entity, we will create a new entity for our second table. So begin by creating a file in /src/typeorm/entities/ called Profile.ts
-
-In this file we will define our Profile entity.
+We already have an entity file set up in our profile directory, now we just need to add the required code to it.
 
 Begin with the @Entity decorator. We will name our table user_profiles, so add that into the argument of the decorator.
 
@@ -757,7 +785,7 @@ export class Profile {
 
 Now that we have our Profile entity set up, we can set up the relationship between the two entities. Start off by opening the User entity file, and adding the @OneToOne decorator. This will take a callback function as an argument, which will return the Profile entity. We will also need to add the @JoinColumn decorator, which will join the tables together.
 
-src/typeorm/entities/User.ts
+src/users/entities/user.ts
 
 ```typescript
 @OneToOne(() => Profile)
@@ -807,4 +835,86 @@ mysql> describe user_profiles;
 | lastName  | varchar(255) | NO   |     | NULL    |                |
 +-----------+--------------+------+-----+---------+----------------+
 3 rows in set (0.00 sec)
+```
+
+## Interacting with the Profile entity
+
+Now that we have created a new entity, we need to add the functionality to interact with it. While the generate resource command has done a lot of the work for us, we need to go into our module, service, and controller files and check that they are set up correctly for our application.
+
+## Adding the createUserProfile DTO and types
+
+We already have a create-profile dto file, but we will need to set it up for our application.
+
+Our DTO needs to be set up for first name, last name, and date of birth.
+
+src/users/dto/create-profile.dto.ts
+
+```typescript
+export class CreateProfileDto {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+}
+```
+
+src/users/dto/update-profile.dto.ts
+
+```typescript
+export class UpdateProfileDto {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+}
+```
+
+We will also want to set up our types for create and update in our types file:
+
+src/users/types.ts
+
+```typescript
+...
+export type CreateProfileParams = {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+}
+
+export type UpdateProfileParams = {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+}
+```
+
+## Setting up CRUD in our Profile Service
+
+Thanks to the generate resource command, we have a full set of basic CRUD action set up in our controller:
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { CreateProfileDto } from './dto/create-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+
+@Injectable()
+export class ProfilesService {
+  create(createProfileDto: CreateProfileDto) {
+    return 'This action adds a new profile';
+  }
+
+  findAll() {
+    return `This action returns all profiles`;
+  }
+
+  findOne(id: number) {
+    return `This action returns a #${id} profile`;
+  }
+
+  update(id: number, updateProfileDto: UpdateProfileDto) {
+    return `This action updates a #${id} profile`;
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} profile`;
+  }
+}
 ```
