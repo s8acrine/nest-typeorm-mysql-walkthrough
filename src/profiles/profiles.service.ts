@@ -2,13 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateProfileParams, UpdateProfileParams } from 'src/utils/types';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Profile } from './entities/profile.entity';
+import { User } from 'src/users/entities/user';
 
 @Injectable()
 export class ProfilesService {
 
+  constructor(
+    @InjectRepository(Profile) private userRepository: Repository<Profile>) {}
+    @InjectRepository(User) private profileRepository: Repository<User>) {}
+
   create(id: number,
     profileDetails: CreateProfileParams) {
-    return 'This action adds a new profile';
+    const user = await this.userRepository.findOneBy({ id })
   }
 
   findAll() {
