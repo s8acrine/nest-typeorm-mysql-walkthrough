@@ -716,11 +716,15 @@ async deleteUserById(
 }
 ```
 
-# Adding a second entity
+# One-to-One Relationships
 
 We can now perform some basic functionality with our Users entity, but we will need to add a second entity to our database in order to demonstrate how to work with relationships in Nest.js and TypeORM effectively.
 
-While you can absolutley follow the above process for creating a new entity, the nest.js cli has a command that will create your your modul, entity, service, and controller files for you, and set up basic CRUD endpoints. We will use this command to create our second entity.
+For this purpose, we will create a Profiles entity, which will have a one-to-one relationship with our Users entity. This allows us to store information on our users in a seperate table.
+
+## Creating the entity using the resource generator
+
+While you can certainly follow the above process for creating a new entity, the nest.js cli has a command that will create your your modul, entity, service, and controller files for you, and set up basic CRUD endpoints. We will use this command to create our second entity.
 
 It will ask you what transport layer you will use, since we are using REST API, we will select that and hit enter.
 You will next be asked if you would like to generate CRUD endpoints, we will select yes.
@@ -752,8 +756,7 @@ Now we have our basic structure for our second entity, we can begin to modify it
 
 ## A quick note on Relationships
 
-This next section will cover database relationships with Nest.js and TypeORM. As this walkthrough is not designed to be a full tutorial on Nest.js, we will not be covering this in depth.
-It is reccomended that you read the documentation on TypeORM relationships, as well as Nest.js relationships.
+This section will cover the basics of relationships in Nest.js and TypeORM, but is by no means a full guide. Refer to the TypeORM documentation for more information on relationships.
 
 ## Setting up the entity
 
@@ -839,7 +842,7 @@ mysql> describe user_profiles;
 3 rows in set (0.00 sec)
 ```
 
-# Setting up the Profile with Full CRUD
+## Setting up the Profile
 
 Now that we have created a new entity, we need to add the functionality to interact with it. While the generate resource command has done a lot of the work for us, we need to go into our module, service, and controller files and check that they are set up correctly for our application.
 
@@ -910,7 +913,7 @@ export type UpdateProfileParams = {
 }
 ```
 
-## Setting up CRUD operations
+## CRUD Scaffolding
 
 Thanks to the generate resource command, we have a full set of basic CRUD action methods scaffolded inside our service file. We need to make the neccessary updates to these methods, but much of the work has been done for us:
 
@@ -943,11 +946,11 @@ export class ProfilesService {
 }
 ```
 
-## CRUD: Create
+## Create
 
 Our first focus will be on the create action. Our goal here is to create a new profile and attach it to a user.
 
-### CRUD: Create: Service
+### Create Profile: Service
 
 In order to create a profile, our service will need access to both the Profile and User repositories. Similar to how we set up our User service, we need to inject these repositories into our service class:
 
@@ -994,7 +997,7 @@ user.profile = profile;
 await this.userRepository.save(user);
 ```
 
-### CRUD: Create: Controller
+### Create Profile: Controller
 
 Now that we have set up our service, we need to update our controller to use the new create method. We can use the :id paramater to add to our @Post endpoint.
 In order to create a profile, we will need the id of a user to assosciate it with, as well as the profile details. We can use the @Body decorator to access the profile details. We can then use the @Param decorator to access the id of the user we want to attach the profile to.
@@ -1012,7 +1015,7 @@ src/users/controllers/profiles.controller.ts
   }
 ```
 
-### CRUD: Create: Testing
+### Create Profile: Testing the endpoint
 
 Now that we have set up our controller and service, we can test our create action. We can use Postman to test our create action. We will need to make a POST request to the following endpoint (make sure you have a user in your database and use the id of that user):
 
@@ -1030,4 +1033,264 @@ The body of your request should follow the format of your DTO:
 
 If successful, you should see the profile that was created in your response body.
 
-## CRUD: Read
+## Seeing the relationship in action: Read functionality
+
+We have a profile created for the user, but right now, we have no way to access that informaiton. If you run a get request on the users endpoint, you will see that the profile is not included in the response.
+
+In order to access the profile, we will need to update our read action. We will need to update the service.
+
+In our Users service, we want our profiles to be pulled alongside our users when we perform our get request, so we need to pass in the relations option to our find method. We can then pass in the profile relation:
+
+src/users/services/users.service.ts
+
+```typescript
+...
+  findAll() {
+    return this.userRepository.find({ relations: ['profile'] });
+...
+  }
+```
+
+Now when you run a get request on users, you will see that the profile is included in the response:
+
+```json
+[
+  {
+    "id": 1,
+    "username": "johndoe",
+    "password": "correcthorsebatterystaple",
+    "createdAt": "2021-07-07T20:00:00.000Z",
+    "authStrategy": "none",
+    "profile": {
+      "id": 1,
+      "firstName": "John",
+      "lastName": "Doe",
+      "dateOfBirth": "1990-01-01"
+    }
+  }
+]
+```
+
+## Review
+
+We now have two tables, Users and Profiles, that have a one-to-one relationship. We have set up our service and controller to create a profile and attach it to a user. We have also set up our service to pull the profile alongside the user when we perform a get request on the users endpoint.
+
+Feel free to expand on the profile entity and complete additional CRUD actions.
+
+For now, we will move on to setting up a new type of relationship: one-to-many.
+
+# One-to-Many
+
+To demonstrate the one-to-many relationship, we will be creating a new entity called Posts. Each user will be able to create multiple posts, but each post will only belong to one user.
+
+## Create the Posts entity
+
+To create our new Posts entity, we will need to use the Nest CLI. We can use the following command to generate a new entity:
+
+```
+$ nest g resource posts
+```
+
+This will setup a new directory with a module, controller, and service. We will also need to create a new entity. Now we need to create a new entity and our dtos.
+
+Create the src/posts/entities/posts.entity.ts file.
+
+Now we can set up our Post entity.
+
+As always, we will want a primary generated column to handle our unique id.
+
+We will also want a title, body, and a createdAt column:
+
+src/posts/entities/posts.entity.ts
+
+```typescript
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity()
+export class Post {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @Column()
+  body: string;
+
+  @Column()
+  createdAt: Date;
+}
+```
+
+### Add the entity to the App module
+
+Now that our new entity is created, make sure we make it available to our application. Just as we did for the Profile entity, add the Post entity to the entities array in the TypeOrmModule.forRoot() method in the App module.
+
+src/app.module.ts
+
+```typescript
+...
+@Module({
+  imports: [TypeOrmModule.forRoot({
+    type: 'mysql',
+    host: 'localhost',
+    port: 3306,
+    username: 'testuser',
+    password: 'testuser123',
+    database: 'nestjs_mysql_tutorial',
+    entities: [User, Profile, Post],
+    synchronize: true
+  }), UsersModule, ProfilesModule, PostsModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+...
+```
+
+## Setting up the One-to-Many relationship on the User entity
+
+In our User entity, we need to set up the one-to-many relationship very similar to how we set up the one-to-one relationship for our profile.
+
+This time, we will use the @OneToMany decorator, pass in our callback function, and pass in the type of entity we want to relate to: Post, as well as the inverse side of the relationship: user.
+
+src/users/entities/users.entity.ts
+
+```typescript
+...
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+...
+```
+
+You may notice that your IDE is giving you an error. This is because we have not yet created the relationship on the Post entity. We will do that next.
+
+## Setting up the One-to-Many relationship on the Post entity
+
+In our Post entity, we need to set up the many-to-one relationship very similar to how we set up the one-to-one relationship for our profile.
+
+We use the @ManyToOne decorator, pass in our callback function, and pass in the type of entity we want to relate to: User, as well as the inverse side of the relationship: posts:
+
+src/posts/entities/posts.entity.ts
+
+```typescript
+...
+  @ManyToOne(() => User, (user) => user.posts)
+  user: User;
+...
+```
+
+You should now see that the error in your IDE has gone away.
+
+## Set up the Posts module
+
+We are going to need access to both the User and Post entities to interact with posts, so we will need to import both of those into our Posts module using the TypeOrmModule.forFeature() method.
+
+src/posts/posts.module.ts
+
+```typescript
+import { Module } from '@nestjs/common';
+import { PostsService } from './posts.service';
+import { PostsController } from './posts.controller';
+import { Post } from './entities/post';
+import { User } from 'src/users/entities/user';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Post, User])],
+  controllers: [PostsController],
+  providers: [PostsService],
+})
+export class PostsModule {}
+```
+
+## Setting up DTOs and Types for Posts
+
+Create the DTO and custom Type for posts, just as we did for the other entities:
+
+src/posts/dto/create-post.dto.ts
+
+```typescript
+export class CreatePostDto {
+  title: string;
+  body: string;
+}
+```
+
+src/posts/dto/update-post.dto.ts
+
+```typescript
+export class UpdatePostDto {
+  title: string;
+  body: string;
+}
+```
+
+src/posts/types/post.ts
+
+```typescript
+...
+export type CreatePostParams = {
+  title: string;
+  content: string;
+}
+
+export type UpdatePostParams = {
+  title: string;
+  content: string;
+}
+...
+```
+
+## Set up the Posts service
+
+We will need to inject the Post and User repository into our posts service:
+
+src/posts/services/posts.service.ts
+
+```typescript
+...
+constructor(
+    @InjectRepository(Post) private postsRepository: Repository<Post>,
+    @InjectRepository(User) private userRepository: Repository<User>
+  ) {}
+...
+```
+
+And also set up our create method.
+
+Again, this is very similar to what we have done for the profile method.
+
+src/posts/services/posts.service.ts
+
+```typescript
+...
+  async create(id: number, createPostDetails: CreatePostParams) {
+    const user = await this.userRepository.findOneBy({ id })
+    if (!user)
+      throw new HttpException(
+        'User not found',
+        HttpStatus.BAD_REQUEST
+      )
+    const newPost = this.postsRepository.create(createPostDetails)
+    return this.userRepository.save(newPost)
+  }
+  ...
+```
+
+## Set up the Posts controller
+
+Now we need to create our Post route in our controller. This should be pretty familiar by now:
+
+src/posts/controllers/posts.controller.ts
+
+```typescript
+...
+  @Post(':id/posts')
+  create(
+    @Param('id') id: number,
+    @Body() createPostDetails: CreatePostParams
+  ) {
+    return this.postsService.create(id, createPostDetails)
+  }
+  ...
+```

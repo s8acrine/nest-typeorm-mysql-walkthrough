@@ -10,7 +10,7 @@ export class UsersService {
   constructor(@InjectRepository(User) private userRepository: Repository<User>) {}
 
   findUsers() {
-    return this.userRepository.find()
+    return this.userRepository.find({relations: ['profile']})
   }
 
   createUser(userDetails: CreateUserParams) {
