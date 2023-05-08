@@ -6,6 +6,7 @@ import { User } from './users/entities/user';
 import { UsersModule } from './users/users.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { Profile } from './profiles/entities/profile.entity';
+import { PostsModule } from './posts/posts.module';
 
 
 @Module({
@@ -18,7 +19,7 @@ import { Profile } from './profiles/entities/profile.entity';
     database: 'nestjs_mysql_tutorial',
     entities: [User, Profile],
     synchronize: true
-  }), UsersModule, ProfilesModule],
+  }), UsersModule, ProfilesModule, PostsModule],
   controllers: [AppController],
   providers: [AppService],
 })
