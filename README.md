@@ -304,7 +304,9 @@ Now we have the classes we need to being interacting with our database
 ### import TypeORM into the users module
 
 Our first task is to import TypeORM into our users module, as well as defining the controllers and providors we will be using with our users module.
-As we used the CLI tool to create our controller and service, they will be prefilled for us into the appropriate array.
+We need to add the TypeOrmModule to our imports array, using the .forFeature method with the argument of [User] to let the module know we will be using the User entity.
+
+As we used the CLI to create our controller and service, we should see those classes already in the controller and providers arrays, respectively. If not, make sure to add them, your file should look like this:
 
 users.module.ts
 
@@ -837,9 +839,31 @@ mysql> describe user_profiles;
 3 rows in set (0.00 sec)
 ```
 
-## Interacting with the Profile entity
+# Setting up the Profile with Full CRUD
 
 Now that we have created a new entity, we need to add the functionality to interact with it. While the generate resource command has done a lot of the work for us, we need to go into our module, service, and controller files and check that they are set up correctly for our application.
+
+## Setting up the Profile Module
+
+Because profiles are going to be attached to a user, we will need access to both the user and profile repositories. Therefore, we need to import both of these into our Profile module. Our conroller and service files should already be set up as we used the CLI tool, but do make sure to double check:
+
+/src/profiles/profiles.module.ts
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ProfilesService } from './profiles.service';
+import { ProfilesController } from './profiles.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/user';
+import { Profile } from './entities/profile.entity';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Profile, User])],
+  controllers: [ProfilesController],
+  providers: [ProfilesService],
+})
+export class ProfilesModule {}
+```
 
 ## Adding the createUserProfile DTO and types
 
@@ -886,9 +910,9 @@ export type UpdateProfileParams = {
 }
 ```
 
-## Setting up CRUD in our Profile Service
+## Setting up CRUD operations
 
-Thanks to the generate resource command, we have a full set of basic CRUD action set up in our controller:
+Thanks to the generate resource command, we have a full set of basic CRUD action methods scaffolded inside our service file. We need to make the neccessary updates to these methods, but much of the work has been done for us:
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -918,3 +942,92 @@ export class ProfilesService {
   }
 }
 ```
+
+## CRUD: Create
+
+Our first focus will be on the create action. Our goal here is to create a new profile and attach it to a user.
+
+### CRUD: Create: Service
+
+In order to create a profile, our service will need access to both the Profile and User repositories. Similar to how we set up our User service, we need to inject these repositories into our service class:
+
+src/users/services/profiles.service.ts
+
+```typescript
+...
+  constructor(
+    @InjectRepository(Profile) private profileRepository: Repository<Profile>,
+    @InjectRepository(User) private userRepository: Repository<User>
+    ) {}
+...
+```
+
+Now that we have access to both repositories, we can access the user repository to find the user we want to attach the profile to. We can then use the profile repository to create a new profile and attach it to the user. We will also need to save the user to the database.
+
+Modify the existing create method to be asynchronous. We will also need to pass in the id of the user we want to attach the profile to. Finally, we need to attach the profile details and type it to our CreateProfileParams type:
+
+src/users/services/profiles.service.ts
+
+```typescript
+async create(id: number,
+    createProfileDetails: CreateProfileParams) {}
+```
+
+Inside the create method, we need to find the user we want to attach the profile to. We can do this by using the findOne method on the user repository. We will need to pass in the id of the user we want to find.
+
+If a user is NOT found, we want to be sure to throw an error. We can do this by using the NotFoundException from the @nestjs/common package. We can then pass in a message to be displayed if the user is not found:
+
+src/users/services/profiles.service.ts
+
+```typescript
+const user = await this.userRepository.findOneBy({ id });
+if (!user) throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
+```
+
+Now that we have found the user, we can create a new profile. We can do this by using the create method on the profile repository. We will need to pass in the createProfileDetails object we are receiving from the controller. We can then update the user by attaching the profile to the user. Finally, we need to save the user to the database:
+
+src/users/services/profiles.service.ts
+
+```typescript
+const profile = await this.profileRepository.create(createProfileDetails);
+user.profile = profile;
+await this.userRepository.save(user);
+```
+
+### CRUD: Create: Controller
+
+Now that we have set up our service, we need to update our controller to use the new create method. We can use the :id paramater to add to our @Post endpoint.
+In order to create a profile, we will need the id of a user to assosciate it with, as well as the profile details. We can use the @Body decorator to access the profile details. We can then use the @Param decorator to access the id of the user we want to attach the profile to.
+
+Then we can call on the create method from our service, passing in the id and the createProfileDTO. We can then return the profile that was created:
+
+src/users/controllers/profiles.controller.ts
+
+```typescript
+  @Post(':id')
+  create(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() createProfileDto: CreateProfileDto) {
+    return this.profilesService.create(id, createProfileDto);
+  }
+```
+
+### CRUD: Create: Testing
+
+Now that we have set up our controller and service, we can test our create action. We can use Postman to test our create action. We will need to make a POST request to the following endpoint (make sure you have a user in your database and use the id of that user):
+
+http://localhost:3000/profiles/{id_of_user}
+
+The body of your request should follow the format of your DTO:
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "1990-01-01"
+}
+```
+
+If successful, you should see the profile that was created in your response body.
+
+## CRUD: Read

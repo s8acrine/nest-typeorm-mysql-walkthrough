@@ -7,11 +7,11 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
-  @Post('profiles/:id')
+  @Post(':id')
   create(
     @Param('id', ParseIntPipe) id: number,
     @Body() createProfileDto: CreateProfileDto) {
-    return this.profilesService.create(createProfileDto);
+    return this.profilesService.create(id, createProfileDto);
   }
 
   @Get()
