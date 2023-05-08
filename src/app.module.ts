@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './typeorm/entities/User';
+import { User } from './users/entities/user';
 import { UsersModule } from './users/users.module';
-import { Profile } from './typeorm/entities/Profile';
+import { ProfilesModule } from './profiles/profiles.module';
+import { Profile } from './profiles/entities/profile.entity';
+
 
 @Module({
   imports: [TypeOrmModule.forRoot({
@@ -16,7 +18,7 @@ import { Profile } from './typeorm/entities/Profile';
     database: 'nestjs_mysql_tutorial',
     entities: [User, Profile],
     synchronize: true
-  }), UsersModule],
+  }), UsersModule, ProfilesModule],
   controllers: [AppController],
   providers: [AppService],
 })
