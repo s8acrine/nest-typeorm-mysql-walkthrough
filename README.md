@@ -1122,7 +1122,32 @@ export class Post {
 }
 ```
 
-## Setting up the One-to-Many relationship
+### Add the entity to the App module
+
+Now that our new entity is created, make sure we make it available to our application. Just as we did for the Profile entity, add the Post entity to the entities array in the TypeOrmModule.forRoot() method in the App module.
+
+src/app.module.ts
+
+```typescript
+...
+@Module({
+  imports: [TypeOrmModule.forRoot({
+    type: 'mysql',
+    host: 'localhost',
+    port: 3306,
+    username: 'testuser',
+    password: 'testuser123',
+    database: 'nestjs_mysql_tutorial',
+    entities: [User, Profile, Post],
+    synchronize: true
+  }), UsersModule, ProfilesModule, PostsModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+...
+```
+
+## Setting up the One-to-Many relationship on the User entity
 
 In our User entity, we need to set up the one-to-many relationship very similar to how we set up the one-to-one relationship for our profile.
 
@@ -1155,3 +1180,117 @@ src/posts/entities/posts.entity.ts
 ```
 
 You should now see that the error in your IDE has gone away.
+
+## Set up the Posts module
+
+We are going to need access to both the User and Post entities to interact with posts, so we will need to import both of those into our Posts module using the TypeOrmModule.forFeature() method.
+
+src/posts/posts.module.ts
+
+```typescript
+import { Module } from '@nestjs/common';
+import { PostsService } from './posts.service';
+import { PostsController } from './posts.controller';
+import { Post } from './entities/post';
+import { User } from 'src/users/entities/user';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Post, User])],
+  controllers: [PostsController],
+  providers: [PostsService],
+})
+export class PostsModule {}
+```
+
+## Setting up DTOs and Types for Posts
+
+Create the DTO and custom Type for posts, just as we did for the other entities:
+
+src/posts/dto/create-post.dto.ts
+
+```typescript
+export class CreatePostDto {
+  title: string;
+  body: string;
+}
+```
+
+src/posts/dto/update-post.dto.ts
+
+```typescript
+export class UpdatePostDto {
+  title: string;
+  body: string;
+}
+```
+
+src/posts/types/post.ts
+
+```typescript
+...
+export type CreatePostParams = {
+  title: string;
+  content: string;
+}
+
+export type UpdatePostParams = {
+  title: string;
+  content: string;
+}
+...
+```
+
+## Set up the Posts service
+
+We will need to inject the Post and User repository into our posts service:
+
+src/posts/services/posts.service.ts
+
+```typescript
+...
+constructor(
+    @InjectRepository(Post) private postsRepository: Repository<Post>,
+    @InjectRepository(User) private userRepository: Repository<User>
+  ) {}
+...
+```
+
+And also set up our create method.
+
+Again, this is very similar to what we have done for the profile method.
+
+src/posts/services/posts.service.ts
+
+```typescript
+...
+  async create(id: number, createPostDetails: CreatePostParams) {
+    const user = await this.userRepository.findOneBy({ id })
+    if (!user)
+      throw new HttpException(
+        'User not found',
+        HttpStatus.BAD_REQUEST
+      )
+    const newPost = this.postsRepository.create(createPostDetails)
+    return this.userRepository.save(newPost)
+  }
+  ...
+```
+
+## Set up the Posts controller
+
+Now we need to create our Post route in our controller. This should be pretty familiar by now:
+
+src/posts/controllers/posts.controller.ts
+
+```typescript
+...
+  @Post(':id/posts')
+  create(
+    @Param('id') id: number,
+    @Body() createPostDetails: CreatePostParams
+  ) {
+    return this.postsService.create(id, createPostDetails)
+  }
+  ...
+```

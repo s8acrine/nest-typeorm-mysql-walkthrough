@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { Profile } from './profiles/entities/profile.entity';
 import { PostsModule } from './posts/posts.module';
+import { Post } from './posts/entities/post';
 
 
 @Module({
@@ -17,7 +18,7 @@ import { PostsModule } from './posts/posts.module';
     username: 'testuser',
     password: 'testuser123',
     database: 'nestjs_mysql_tutorial',
-    entities: [User, Profile],
+    entities: [User, Profile, Post],
     synchronize: true
   }), UsersModule, ProfilesModule, PostsModule],
   controllers: [AppController],

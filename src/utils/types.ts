@@ -19,3 +19,13 @@ export type UpdateProfileParams = {
   lastName: string;
   dateOfBirth: Date;
 }
+
+export type CreatePostParams = {
+  title: string;
+  body: string;
+}
+
+export type UpdatePostParams = {
+  title: string;
+  body: string;
+}
