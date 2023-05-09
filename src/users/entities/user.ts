@@ -9,6 +9,8 @@ import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn
 
 // exports the User class to be used throughout the application
 export class User{
+
+  
   // PrimaryGeneratedColumn decorator denotes this column will be automatically generated and incremented with each new instance of the User entity
   @PrimaryGeneratedColumn()
   id: number;

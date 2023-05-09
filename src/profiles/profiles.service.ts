@@ -30,7 +30,7 @@ export class ProfilesService {
   }
 
   findAll() {
-    return `This action returns all profiles`;
+    return this.profileRepository.find();
   }
 
   findOne(id: number) {
