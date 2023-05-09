@@ -1,5 +1,6 @@
 import { IsString, Length } from "class-validator";
-import { isUserUnique } from "src/users/validators/isUserUnique";
+import { isUserUnique } from "../validators/isUserUnique";
+
 
 export class CreateUserDto {
   @IsString()
