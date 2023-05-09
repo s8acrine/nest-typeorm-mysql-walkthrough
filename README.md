@@ -100,7 +100,7 @@ Within the CLI, enter the following command
 mysql> CREATE DATABASE nestjs_mysql_tutorial;
 ```
 
-# Setting up your Project with TypeORM and creating your first endpoint
+# Setting up your Project with TypeORM and creating the Post endpoint
 
 To use TypeORM with our project, we need to import the TypeOrmModule into our app.module.ts
 
@@ -715,3 +715,18 @@ async deleteUserById(
   await this.usersService.deleteUser(id)
 }
 ```
+
+And now we should be able to delete a user from our database using the /users/:id endpoint.
+
+# Next Steps
+
+By now, you should have a functioning API that can create, read, update, and delete users from a database. You should also have a good understanding of how to use NestJS to create a REST API.
+
+It is important to note there are many more stages of development that would be required for a production ready API. My hope is to continue to add more to this project to take you to that point. For now, If you would like to continue with this project, the guides folder contains information on how to continue to build out your api. A suggested order is provided below:
+
+1. Relationships - v1.0 05/09/2023
+2. Validation - V1.0 05/09/2023
+3. Authentication - TODO
+4. Authorization - TODO
+5. Testing - TODO
+6. Deployment - TODO
