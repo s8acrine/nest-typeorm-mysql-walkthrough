@@ -72,10 +72,12 @@ export class Profile {
 
 Now that we have our Profile entity set up, we can set up the relationship between the two entities. Start off by opening the User entity file, and adding the @OneToOne decorator. This will take a callback function as an argument, which will return the Profile entity. We will also need to add the @JoinColumn decorator, which will join the tables together.
 
+It is also neccessary to define what will happen if a profile is deleted. We can do this by adding the onDelete property to the @JoinColumn decorator. We will set this to SET NULL, which will set the profileId to null if the profile is deleted.
+
 src/users/entities/user.ts
 
 ```typescript
-@OneToOne(() => Profile)
+@OneToOne(() => Profile, { onDelete: 'SET NULL' })
 @JoinColumn()
 profile: Profile
 ```

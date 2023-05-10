@@ -117,27 +117,18 @@ Then we create the validate method, which searches the repository for a user tha
 src/users/validators/isUserUnique.validator.ts
 
 ```typescript
-import { InjectRepository } from '@nestjs/typeorm';
-import {
-  ValidationArguments,
-  ValidationOptions,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-  registerDecorator,
-} from 'class-validator';
-import { User } from 'src/users/entities/user';
-import { Repository } from 'typeorm';
-
 @ValidatorConstraint({ async: true })
-export class UsernameUniqueness implements ValidatorConstraintInterface {
+export class IsUserUniqueConstraint implements ValidatorConstraintInterface {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
-  async validate(username: any, args: ValidationArguments) {
-    console.log(this.userRepository);
-    const user = await this.userRepository.findOneBy({ username });
-    if (user.username === username) return false;
-    return true;
+  validate(userName: any, args: ValidationArguments) {
+    return this.userRepository
+      .findOneBy({ username: userName })
+      .then((user) => {
+        if (user) return false;
+        return true;
+      });
   }
   defaultMessage(validationArguments?: ValidationArguments): string {
     return 'User $value already exists. Choose another name.';
@@ -150,14 +141,14 @@ export class UsernameUniqueness implements ValidatorConstraintInterface {
 Now we need to create a decorator to use our custom validation class.
 
 ```typescript
-export function isUserUnique(validationOptions?: ValidationOptions) {
+export function IsUserUnique(validationOptions?: ValidationOptions) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
       options: validationOptions,
       constraints: [],
-      validator: UsernameUniqueness,
+      validator: IsUserUniqueConstraint,
     });
   };
 }
@@ -173,7 +164,7 @@ src/users/dto/create-user.dto.ts
 export class CreateUserDto {
   @IsString()
   @Length(3, 20)
-  @isUserUnique()
+  @IsUserUnique()
   username: string;
 ```
 
@@ -188,7 +179,7 @@ src/users/users.module.ts
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
   controllers: [UsersController],
-  providers: [UsersService, UsernameUniqueness],
+  providers: [UsersService, IsUserUniqueConstraint],
 })
 ...
 ```
@@ -201,4 +192,23 @@ src/main.ts
 
 ```typescript
 useContainer(app.select(AppModule), { fallbackOnErrors: true });
+```
+
+### Testing our validation
+
+Now we can make a POST request to our users endpoint with a username that already exists:
+
+```json
+{
+  "username": "test",
+  "password": "test"
+}
+```
+
+```json
+{
+  "statusCode": 400,
+  "message": ["User test already exists. Choose another name."],
+  "error": "Bad Request"
+}
 ```
