@@ -32,7 +32,7 @@ export class User{
   @Column({ nullable: true })
   authStrategy: string;
 
-  @OneToOne(() => Profile)
+  @OneToOne(() => Profile, {onDelete: "SET NULL"})
   @JoinColumn()
   profile: Profile;
 

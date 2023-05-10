@@ -14,7 +14,6 @@ export class ProfilesService {
     @InjectRepository(Profile) private profileRepository: Repository<Profile>,
     @InjectRepository(User) private userRepository: Repository<User>
     ) {}
-  
 
   async create(
     user_id: number,
@@ -31,34 +30,57 @@ export class ProfilesService {
         'User already has a profile',
         HttpStatus.BAD_REQUEST
       )
-    const newProfile = this.profileRepository.create({...createProfileDetails, user: user})
+    const newProfile = this.profileRepository.create({...createProfileDetails})
     const savedProfile = await this.profileRepository.save(newProfile)
     user.profile = savedProfile
     return this.userRepository.save(user)
   }
 
   findAll() {
-    return this.profileRepository.find({relations: ['user']});
+    return this.profileRepository.find();
   }
 
-  async findOne(id: number) {
-    const user = await this.userRepository.findOne({where: {id: id}})
+  async findOne(user_id: number) {
+    const user = await this.userRepository.findOne({where: {id: user_id}, relations: ['profile']})
     if (!user)
-
       throw new HttpException(
         'User not found',
         HttpStatus.NOT_FOUND
       )
-      else {
-        return user.profile
-      }
+    if (!user.profile)
+      throw new HttpException(
+        'User does not have a profile',
+        HttpStatus.NOT_FOUND
+      )
+        return this.profileRepository.findOne({where: {id: user.profile.id}})
   }
 
-  update(id: number, updateProfileParams: UpdateProfileParams) {
-    return `This action updates a #${id} profile`;
+  async updateByUserId(user_id: number, updateProfileParams: UpdateProfileParams) {
+    const user = await this.userRepository.findOne({where: {id: user_id}, relations: ['profile']})
+    if (!user)
+      throw new HttpException(
+        'User not found',
+        HttpStatus.NOT_FOUND
+      )
+    const profile = user.profile
+    this.profileRepository.update(profile, {...updateProfileParams})
+    return updateProfileParams
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} profile`;
+  async remove(user_id: number) {
+    const user = await this.userRepository.findOne({where: {id: user_id}, relations: ['profile']})
+    if (!user)
+    throw new HttpException(
+      'User not found',
+      HttpStatus.NOT_FOUND
+    )
+  if (!user.profile)
+    throw new HttpException(
+      'User does not have a profile',
+      HttpStatus.NOT_FOUND
+    )
+    await this.profileRepository.delete({id: user.profile.id})
+
   }
+
 }

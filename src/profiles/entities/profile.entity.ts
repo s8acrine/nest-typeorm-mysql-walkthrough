@@ -16,7 +16,6 @@ export class Profile{
   dateOfBirth: Date;
 
   @OneToOne(() => User)
-  @JoinColumn()
   user: User
 
 }
