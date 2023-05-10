@@ -14,27 +14,44 @@ export class ProfilesService {
     @InjectRepository(Profile) private profileRepository: Repository<Profile>,
     @InjectRepository(User) private userRepository: Repository<User>
     ) {}
+  
 
-  async create(id: number,
-    createProfileDetails: CreateProfileParams) {
-    const user = await this.userRepository.findOneBy({ id })
+  async create(
+    user_id: number,
+    createProfileDetails: CreateProfileParams) 
+  {
+    const user = await this.userRepository.findOne({where: {id: user_id}, relations: ['profile']})
     if (!user)
       throw new HttpException(
-        'User not found', 
+        'User not found',
+        HttpStatus.NOT_FOUND
+      )
+    if (user.profile)
+      throw new HttpException(
+        'User already has a profile',
         HttpStatus.BAD_REQUEST
       )
-    const newProfile = this.profileRepository.create(createProfileDetails)
+    const newProfile = this.profileRepository.create({...createProfileDetails, user: user})
     const savedProfile = await this.profileRepository.save(newProfile)
     user.profile = savedProfile
     return this.userRepository.save(user)
   }
 
   findAll() {
-    return this.profileRepository.find();
+    return this.profileRepository.find({relations: ['user']});
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} profile`;
+  async findOne(id: number) {
+    const user = await this.userRepository.findOne({where: {id: id}})
+    if (!user)
+
+      throw new HttpException(
+        'User not found',
+        HttpStatus.NOT_FOUND
+      )
+      else {
+        return user.profile
+      }
   }
 
   update(id: number, updateProfileParams: UpdateProfileParams) {
