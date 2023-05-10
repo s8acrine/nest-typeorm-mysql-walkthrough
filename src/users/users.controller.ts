@@ -2,7 +2,6 @@ import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Delete, ParseB
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dtos/update-user.dto';
-import { UserDetailsDto } from './dtos/user-details.dto';
 
 @Controller('users')
 export class UsersController {
